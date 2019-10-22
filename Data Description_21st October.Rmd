@@ -1,0 +1,350 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#STEPS OF DATA PRE - PROCESSING:
+#1 Reading the csv file:
+```{r}
+data = read.csv("online_shoppers_intention.csv")
+attach(data)
+head(data)
+tail(data)
+```
+
+
+#2 Checking the structure of the data:
+```{r}
+str(data)
+```
+#3 Summary
+```{r}
+summary(data)
+```
+
+#4 Checking missing data: There are no missing values in the dataset
+```{r}
+which(is.na(data))
+which(is.null(data))
+```
+# Codes, if I want to check missing data for each variable
+#data$Administrative[which(is.na(data$Administrative))]
+#data$Administrative_Duration[which(is.na(data$Administrative_Duration))]
+
+# Codes, if there would have been any missing value to be replaced by mean.
+
+#data$Administrative = ifelse(is.na(data$Administrative),
+#                             ave(data$Administrative, FUN = function(x) mean (x, na.rm = TRUE)),
+#                             data$Administrative)
+
+
+#5 Univariate Analysis: Checking the frequency distribution of the data for each variable.
+```{r}
+hist(data$Administrative,main = "Administrative Page visited by the user in that session", xlab = "Number of time administrative Page visited", ylab = "Count of users",xlim = c(0,30),breaks =30 ,col = "Blue")
+
+#install.packages("moments")
+library(moments)
+
+#install.packages("nortest")
+library(nortest)
+
+#install.packages("goftest")
+library(goftest)
+
+# Measure of skewness
+skewness(Administrative) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(Administrative) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+
+Admlog<-log10(data$Administrative)
+
+hist(Admlog,main = "Log10: Administrative Page visited by the user in that session", xlab = "Number of time administrative Page visited", ylab = "Count of users",xlim = c(0,2),breaks =10 ,col = "Blue")
+```
+
+```{r}
+hist(data$Administrative_Duration,main = "Time spent on Administrative Page",xlab = "Time spent in seconds on Administrative Page", ylab = "Count of users",xlim = c(0,3400),breaks =25 ,col = "Blue")
+
+# Measure of skewness
+skewness(Administrative_Duration) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(Administrative_Duration) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+Admdurlog<-log10(data$Administrative_Duration)
+
+hist(Admdurlog,main = "Log10:Time spent on Administrative Page",xlab = "Time spent in seconds on Administrative Page", ylab = "Count of users",xlim = c(0,5),breaks =25 ,col = "Blue")
+
+```
+
+```{r}
+hist(data$Informational,main = "Informational Page visited by the user in that session", xlab = "Number of time Informational Page visited", ylab = "Count of users",xlim = c(0,25),breaks =30 ,col = "Dark Green")
+
+# Measure of skewness
+skewness(Informational) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(Informational) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+Inflog<-log10(data$Informational)
+
+hist(Inflog,main = "Log10:Informational Page visited by the user in that session", xlab = "Number of time Informational Page visited", ylab = "Count of users",col = "Dark Green")
+```
+
+```{r}
+hist(data$Informational_Duration,main = "Time spent on Informational Page",xlab = "Time spent in seconds on Informational Page", ylab = "Count of users",xlim = c(0,3000),breaks =25 ,col = "Dark Green")
+
+# Measure of skewness
+skewness(Informational_Duration) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(Informational_Duration) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+Infdurlog<-log10(data$Informational_Duration)
+
+hist(Infdurlog,main = "Log10: Time spent on Informational Page",xlab = "Time spent in seconds on Informational Page", ylab = "Count of users",xlim = c(0,4),breaks =25 ,col = "Dark Green")
+```
+
+```{r}
+hist(data$ProductRelated,main = "Product Related Page visited by the user in that session", xlab = "Number of time Product Related Page visited", ylab = "Count of users",xlim = c(0,800),breaks =10 ,col = "Purple")
+
+# Measure of skewness
+skewness(ProductRelated) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(ProductRelated) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+Prolog<-log10(data$ProductRelated)
+
+hist(Prolog,main = "Log10:Product Related Page visited by the user in that session", xlab = "Number of time Product Related Page visited", ylab = "Count of users",xlim = c(0,3),breaks =25 ,col = "Purple")
+```
+
+```{r}
+hist(data$ProductRelated_Duration,main = "Time spent on Product Related Page",xlab = "Time spent in seconds on Product Related Page", ylab = "Count of users",xlim = c(0,70000),breaks =50 ,col = "Purple")
+
+# Measure of skewness
+skewness(ProductRelated_Duration) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(ProductRelated_Duration) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+Produrlog<-log10(data$ProductRelated_Duration)
+
+hist(Produrlog,main = "Log10: Time spent on Product Related Page",xlab = "Time spent in seconds on Product Related Page", ylab = "Count of users",xlim = c(0,5),breaks =50 ,col = "Purple")
+```
+
+```{r}
+hist(data$BounceRates,main = "Bounce Rate - Single Request Triggered", xlab = "Bounce Rate in Percentage", ylab = "Count of users",xlim = c(0,1),breaks =2 ,col = "Brown")
+
+# Measure of skewness
+skewness(BounceRates) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(BounceRates) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+BRlog<-log10(data$BounceRates)
+
+hist(BRlog,main = "Log10: Bounce Rate - Single Request Triggered", xlab = "Bounce Rate in Percentage", ylab = "Count of users",col = "Brown")
+```
+
+
+```{r}
+hist(data$ExitRates,main = "Exit Rate - Percentage of people who left the site from that page", xlab = "Exit Rate in Percentage", ylab = "Count of users",xlim = c(0,1),breaks =2 ,col = "Yellow")
+
+# Measure of skewness
+skewness(ExitRates) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(ExitRates) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+Exitlog<-log10(data$ExitRates)
+
+hist(Exitlog,main = "Log10:Exit Rate - Percentage of people who left the site from that page", xlab = "Exit Rate in Percentage", ylab = "Count of users",col = "Yellow")
+```
+
+```{r}
+hist(data$PageValues,main = "Page Values", xlab = "Average number of page visited", ylab = "Count of users",xlim = c(0,400),breaks =50 ,col = "Pink")
+#Measure of skewness
+skewness(PageValues) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(PageValues) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+PVlog<-log10(data$PageValues)
+
+hist(PVlog,main = "Log10: Page Values", xlab = "Average number of page visited", ylab = "Count of users",col = "Pink")
+```
+
+```{r}
+hist(data$SpecialDay,main = "Special Day", xlab = "Days close to any special day", ylab = "Count of users",col = "Red")
+#Measure of skewness
+
+skewness(PageValues) # If the data is normally distributed value of skewness should be 0. since,we got 1.96. That means the data is positively skewed.
+
+kurtosis(PageValues) # Kurtosis value should be 3. since, we got higher than 3. There is a violation of normality and It is Leptokurtic i.e. thin curve.
+
+#log10 function to solve problem of skewness - The data appears to be skewed towards right.After applying, log10 function the data appears to be normally distributed.
+PVlog<-log10(PageValues)
+```
+
+```{r}
+countsmonth<-table(data$Month)
+
+barplot(countsmonth,main = "Distribution by Month", xlab = "Month of the visit",ylab = "Count of Sessions")
+```
+
+```{r}
+countsOS<-table(data$OperatingSystems)
+barplot(countsOS,main = "Distribution by Operating Systems", xlab = "Types of Operating System",ylab = "Count of Sessions")
+```
+
+```{r}
+countbrowser<-table(data$Browser)
+barplot(countbrowser,main = "Distribution by Browsers", xlab = "Different types of browsers used",ylab = "Count of Sessions")
+```
+
+```{r}
+countregion<-table(data$Region)
+barplot(countregion,main = "Distribution by Regions", xlab = "Regions",ylab = "Count of Sessions")
+```
+
+```{r}
+countTrf<-table(data$TrafficType)
+barplot(countTrf,main = "Distribution by Traffic Types", xlab = "Traffic Types",ylab = "Count of Sessions")
+```
+
+```{r}
+countVist<-table(data$VisitorType)
+
+barplot(countVist,main = "Distribution by Visitor Type", xlab = "Types of Visitors",ylab = "Count of Sessions",names.arg = c("New","Other","Returning"))
+```
+
+```{r}
+countweekend<-table(data$Weekend)
+barplot(countweekend,main = "Day of visit", xlab = "Visited on Weekdays Or Weekends",ylab = "Count of Sessions",names.arg = c("Weekdays","Weekends"))
+```
+
+```{r}
+countrevenue<-table(data$Revenue)
+barplot(countrevenue,main = "Purchased or Not", xlab = "Bought / Not Bought",ylab = "Count of Sessions",names.arg = c("Did Not Buy","Bought"))
+```
+
+#6 Bi - variate Analysis: Each categorical Variable by Revenue 
+```{r}
+countsmonth<-table(data$Revenue, data$Month)
+barplot(countsmonth,main = "Distribution of Months By Revenue",
+        xlab = "Months", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsmonth))
+```
+
+```{r}
+countsOS<-table(data$Revenue, data$OperatingSystems)
+barplot(countsOS,main = "Distribution of Operating System By Revenue",
+        xlab = "Operating System", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsOS))
+```
+```{r}
+countsbrowser<-table(data$Revenue, data$Browser)
+barplot(countsbrowser,main = "Distribution of Browsers By Revenue",
+        xlab = "Browsers", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsbrowser))
+```
+
+```{r}
+countsregion<-table(data$Revenue, data$Region)
+barplot(countsregion,main = "Distribution of Regions By Revenue",
+        xlab = "Regions", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsregion))
+```
+
+```{r}
+countstrf<-table(data$Revenue, data$TrafficType)
+barplot(countstrf,main = "Distribution of Traffic Types By Revenue",
+        xlab = "Traffic Types", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countstrf))
+```
+
+```{r}
+countsvt<-table(data$Revenue, data$VisitorType)
+barplot(countsvt,main = "Distribution of Visitor Types By Revenue",
+        xlab = "Visitor Types", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsvt),names.arg = c("New","Other","Returning"))
+```
+
+```{r}
+countswknd<-table(data$Revenue, data$Weekend)
+barplot(countswknd,main = "Distribution of Days By Revenue",
+        xlab = "Visited on Weekdays or Weekends", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countswknd),names.arg =c("Weekdays","Weekends"))
+```
+
+#7 Checking the outliers of the numerical data variables.
+
+```{r}
+boxplot(data$Administrative,col = "Orange",xlab  = "Administrative Page Visited",main="Outliers - Administration")
+
+boxplot(data$Admlog,col = "Orange",xlab  = "Administrative Page Visited",main="Outliers:Log - Administration",range = (0))
+
+boxplot(data$Administrative_Duration,col = "Orange",xlab  = "Administrative Duration",main="Outliers - Administration Duration")
+boxplot(data$Admdurlog,col = "Orange",xlab  = "Administrative Duration",main="Outliers:Log - Administration Duration")
+
+boxplot(data$Informational,col = "Blue",xlab  = "Informational Page Visited",main="Outliers - Informational")
+boxplot(data$Inflog,col = "Blue",xlab  = "Informational Page Visited",main="Outliers:Log - Informational")
+
+
+boxplot(data$Informational_Duration,col = "Blue",xlab  = "Informational Duration",main="Outliers - Informational Duration")
+boxplot(data$Infdurlog,col = "Blue",xlab  = "Informational Duration",main="Outliers:Log - Informational Duration")
+
+
+boxplot(data$ProductRelated,col = "Red",xlab  = "Product Related Page Visited",main="Outliers - Product Related")
+boxplot(data$Prolog,col = "Red",xlab  = "Product Related Page Visited",main="Outliers:Log - Product Related")
+
+boxplot(data$ProductRelated_Duration,col = "Red",xlab  = "Product Related Duration",main="Outliers - Product Relate Duration")
+boxplot(data$Produrlog,col = "Red",xlab  = "Product Related Duration",main="Outliers:Log - Product Relate Duration")
+
+boxplot(data$BounceRates,col = "Green",xlab  = "Bounce Rates",main="Outliers - Bounce Rates")
+boxplot(data$BRlog,col = "Green",xlab  = "Bounce Rates",main="Outliers:Log - Bounce Rates")
+
+boxplot(data$ExitRates,col = "Blue",xlab  = "Exit Rates",main="Outliers - Exit Rates")
+boxplot(data$Exitlog,col = "Blue",xlab  = "Exit Rates",main="Outliers:Log - Exit Rates")
+
+boxplot(data$PageValues,col = "Yellow",xlab  = "Page Values",main="Outliers - Page Values")
+boxplot(data$PVlog,col = "Yellow",xlab  = "Page Values",main="Outliers:Log - Page Values")
+
+```
+
+#9 To find the correlation of all the variables with the class variable, i.e. "Revenue". But before that I have to convert the categorical variable into numerical variable.
+```{r}
+# Converting the categorical variables in numbers, because we want all the variables to be numeric for the correlation
+# Month is already factor variable, but I am converting the lables with the correct numerical number for each month
+data$Month = factor(data$Month,
+                    levels = c('Feb', 'Mar','May','June','Jul','Aug','Sep','Oct','Nov','Dec'),
+                    labels = c(2,3,5,6,7,8,9,10,11,12))
+
+# Converting Month into numerical variable:
+data$Month=as.numeric(data$Month)
+
+# Visitor Type is already factor variable, but I am converting the lables with the descending numerical order 
+data$VisitorType = factor(data$VisitorType,
+                    levels = c('Returning_Visitor', 'New_Visitor','Other'),
+                    labels = c(1,2,3))
+
+data$VisitorType=as.numeric(data$VisitorType)
+
+# Converting Weekend into numerical value. I am not converting Revenue into numerical because it is the class variable
+data$Weekend=as.numeric(data$Weekend)
+str(data)
+
+#install.packages("corrplot")
+library(corrplot)
+correlation<-cor(data, method = "pearson")
+corrplot(correlation,method = "circle")
+corrplot.mixed(correlation,lower.col = 'black',number.cex=0.75,tl.cex=0.50)
+```
