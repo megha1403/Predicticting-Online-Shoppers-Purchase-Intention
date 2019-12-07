@@ -1,0 +1,1169 @@
+---
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(moments)
+library(nortest)
+library(goftest)
+library(corrplot)
+library(DMwR)
+library(caret)
+library(caTools)
+library(ROCR)
+library(randomForest)
+library(e1071)
+library(class)
+library(ROSE)
+library(MASS)
+library(ElemStatLearn)
+library(mlbench)
+library(Boruta)
+library(Metrics)
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(tidyverse)
+library(tibble)
+library(magrittr)
+library(purrr)
+```
+
+
+#. STEPS OF DATA PRE - PROCESSING:
+
+#.Reading the csv file: There are 18 columns and 12,330 rows.
+```{r}
+url = ("https://archive.ics.uci.edu/ml/machine-learning-databases/00468/online_shoppers_intention.csv")
+originaldata<-read.csv(url,header = TRUE  ,sep = ",")
+```
+
+```{r}
+cleandata<-data.frame(originaldata)
+#Month
+cleandata$Month =   factor(cleandata$Month,
+                    levels = c('Feb', 'Mar','May','June','Jul','Aug','Sep','Oct','Nov','Dec'),
+                    labels = c(2,3,5,6,7,8,9,10,11,12))
+cleandata$Month =   as.character(cleandata$Month)
+cleandata$Month =   as.numeric(cleandata$Month)
+#Visitor type
+cleandata$VisitorType =  factor(cleandata$VisitorType,
+                         levels = c('New_Visitor', 'Other','Returning_Visitor'),
+                         labels = c(1,2,3))
+cleandata$VisitorType =   as.character(cleandata$VisitorType)
+cleandata$VisitorType =   as.numeric(cleandata$VisitorType)
+
+#Weekend
+
+cleandata$Weekend=   as.factor(cleandata$Weekend)
+cleandata$Weekend =   as.numeric(cleandata$Weekend)
+
+str(cleandata)
+
+```
+
+
+#.Checking the structure of the data: There are 10 Quantitative variables(i.e. Integer & Numerical) and 8 Qualitative variables (i.e. Categorical). However, Operating system, Browser, Region and Traffic Type are treated as integer, but they are categorical in nature. This could be because there are no labels for these variables.
+```{r}
+#. Revenue:
+
+table(cleandata$Revenue)
+cleandata$Revenue<-as.factor(cleandata$Revenue)
+                         
+table(cleandata$Revenue)
+
+str(cleandata)
+```
+
+#5.Checking missing data: There are no NA values in the dataset
+```{r}
+which(is.na(cleandata))
+which(is.null(cleandata))
+```
+
+#6.Checking number of Zeros in the data: There are no zeros in categorical and logical variables, however there is almost 50% propotion of zeros in the numerical variables. There are chances the user did not visit the respective page and hence the duration of that page is also zero.
+```{r}
+length(which(cleandata==0))
+```
+ 
+#7. DATA CLEANING:
+#I. Checking number of zeros for each Quantitaive variable:
+#.  ADMINISTRATIVE PAGE & DURATION:Checking the number of cases which has zero for Administrative page and duration: there are 135 user record which has clicked Administration page but the duartion column is blank.
+```{r}
+length(which(cleandata$Administrative==0))
+length(which(cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative>=1 & cleandata$Administrative_Duration==0))
+```
+
+```{r}
+length(which(cleandata$Administrative>=1))
+
+length(which(cleandata$Administrative_Duration>=1))
+
+```
+#.Finding number of cases which has clicked administrative page once, twice, thrice and more and has administration duration as blank.
+```{r}
+length(which(cleandata$Administrative==1 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==2 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==3 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==4 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==5 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==6 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==7 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==8 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==9 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==10 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==11 & cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative==12 & cleandata$Administrative_Duration==0))
+```
+#. Replacing the missing values with the respective Median
+```{r}
+Adm1<-median(subset(cleandata$Administrative_Duration,cleandata$Administrative==1 & cleandata$Administrative_Duration>=1))
+Adm1
+Adm2<-median(subset(cleandata$Administrative_Duration,cleandata$Administrative==2 & cleandata$Administrative_Duration>=1))
+Adm2
+```
+
+```{r}
+cleandata$Administrative_Duration<-replace(cleandata$Administrative_Duration, cleandata$Administrative==1 & cleandata$Administrative_Duration==0, 23.31429)
+cleandata$Administrative_Duration<-replace(cleandata$Administrative_Duration, cleandata$Administrative==2 & cleandata$Administrative_Duration==0, 49.325)
+```
+
+```{r}
+length(which(cleandata$Administrative==0))
+length(which(cleandata$Administrative_Duration==0))
+length(which(cleandata$Administrative>=1 & cleandata$Administrative_Duration==0))
+
+length(which(cleandata$Administrative>=1))
+
+length(which(cleandata$Administrative_Duration>=1))
+
+```
+
+#. INFORMATION PAGE & DURATION:Checking the number of cases which has zero for Information page and duration: there are 226 user record which has clicked Informational page but the duartion column is blank.
+```{r}
+length(which(cleandata$Informational==0))
+length(which(cleandata$Informational_Duration==0))
+length(which(cleandata$Informational>=1 & cleandata$Informational_Duration==0))
+```
+
+```{r}
+length(which(cleandata$Informational>=1))
+
+length(which(cleandata$Informational_Duration>=1))
+
+```
+#.Finding number of cases which has clicked informational page once, twice, thrice and more and has informational duration as blank.
+```{r}
+length(which(cleandata$Informational==1 & cleandata$Informational_Duration==0))
+length(which(cleandata$Informational==2 & cleandata$Informational_Duration==0))
+length(which(cleandata$Informational==3 & cleandata$Informational_Duration==0))
+
+
+```
+#. Replacing the missing values with the respective Median.
+```{r}
+Inf1<-median(subset(cleandata$Informational_Duration,cleandata$Informational==1 & cleandata$Informational_Duration>=1))
+Inf1
+Inf2<-median(subset(cleandata$Informational_Duration,cleandata$Informational==2 & cleandata$Informational_Duration>=1))
+Inf2
+```
+
+```{r}
+cleandata$Informational_Duration<-replace(cleandata$Informational_Duration, cleandata$Informational==1 & cleandata$Informational_Duration==0, 35.5)
+cleandata$Informational_Duration<-replace(cleandata$Informational_Duration, cleandata$Informational==2 & cleandata$Informational_Duration==0, 56.5)
+```
+
+```{r}
+length(which(cleandata$Informational==0))
+length(which(cleandata$Informational_Duration==0))
+length(which(cleandata$Informational>=1 & cleandata$Informational_Duration==0))
+
+length(which(cleandata$Informational>=1))
+
+length(which(cleandata$Informational_Duration>=1))
+```
+#. PRODUCT RELATED PAGE & DURATION:Checking the number of cases which has zero for Product page and duration: there are 717 user record which has clicked Product related page but the duartion column is blank.
+```{r}
+length(which(cleandata$ProductRelated==0))
+length(which(cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated>=1 & cleandata$ProductRelated_Duration==0))
+```
+
+```{r}
+length(which(cleandata$ProductRelated>=1))
+
+length(which(cleandata$ProductRelated_Duration>=1))
+
+```
+#.Finding number of cases which has clicked product related page once, twice, thrice and more and has product related page duration as blank.
+```{r}
+length(which(cleandata$ProductRelated==1 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==2 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==3 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==4 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==5 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==6 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==7 & cleandata$ProductRelated_Duration==0))
+
+length(which(cleandata$ProductRelated==9 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==10 & cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated==11 & cleandata$ProductRelated_Duration==0))
+
+length(which(cleandata$ProductRelated==13 & cleandata$ProductRelated_Duration==0))
+```
+#. Replacing the missing values with the respective median
+```{r}
+Prod1<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==1 & cleandata$ProductRelated_Duration>=0.5))
+Prod1
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==1 & cleandata$ProductRelated_Duration==0, 35.25)
+
+Prod2<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==2 & cleandata$ProductRelated_Duration>=0.5))
+Prod2
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==2 & cleandata$ProductRelated_Duration==0, 33.5)
+
+Prod3<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==3 & cleandata$ProductRelated_Duration>=0.5))
+Prod3
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==3 & cleandata$ProductRelated_Duration==0, 59.5)
+
+Prod4<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==4 & cleandata$ProductRelated_Duration>=0.5))
+Prod4
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==4 & cleandata$ProductRelated_Duration==0, 81.7)
+
+Prod5<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==5 & cleandata$ProductRelated_Duration>=0.5))
+Prod5
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==5 & cleandata$ProductRelated_Duration==0, 116)
+
+Prod6<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==6 & cleandata$ProductRelated_Duration>=0.5))
+Prod6
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==6 & cleandata$ProductRelated_Duration==0, 148.75)
+
+Prod7<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==7 & cleandata$ProductRelated_Duration>=0.5))
+Prod7
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==7 & cleandata$ProductRelated_Duration==0, 187.2)
+
+Prod9<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==9 & cleandata$ProductRelated_Duration>=0.5))
+Prod9
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==9 & cleandata$ProductRelated_Duration==0, 249.41)
+
+Prod10<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==10 & cleandata$ProductRelated_Duration>=0.5))
+Prod10
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==10 & cleandata$ProductRelated_Duration==0, 276)
+
+Prod11<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==11 & cleandata$ProductRelated_Duration>=0.5))
+Prod11
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==11 & cleandata$ProductRelated_Duration==0, 362.6)
+
+Prod13<-median(subset(cleandata$ProductRelated_Duration,cleandata$ProductRelated==13 & cleandata$ProductRelated_Duration>=0.5))
+Prod13
+cleandata$ProductRelated_Duration<-replace(cleandata$ProductRelated_Duration, cleandata$ProductRelated==13 & cleandata$ProductRelated_Duration==0, 354.725)
+
+```
+
+
+```{r}
+length(which(cleandata$ProductRelated==0))
+length(which(cleandata$ProductRelated_Duration==0))
+length(which(cleandata$ProductRelated>=1 & cleandata$ProductRelated_Duration==0))
+```
+
+```{r}
+length(which(cleandata$ProductRelated>=1))
+
+length(which(cleandata$ProductRelated_Duration>=1))
+
+```
+#. Replacing the missing values of Page Values with the respective median
+```{r}
+length(which(cleandata$ProductRelated>=1 & cleandata$Informational>=1 & cleandata$Administrative>=1 & cleandata$PageValues==0))
+Page1<-median(subset(cleandata$PageValues,cleandata$ProductRelated>=1 & cleandata$Informational>=1 & cleandata$Administrative>=1 & cleandata$PageValues>=1))
+Page1
+cleandata$PageValues<-replace(cleandata$PageValues,cleandata$ProductRelated>=1 & cleandata$Informational>=1 & cleandata$Administrative>=1 & cleandata$PageValues==0, 11.19226)
+
+length(which(cleandata$ProductRelated>=1 & cleandata$Informational==0 & cleandata$Administrative==0 & cleandata$PageValues==0))
+Page2<-median(subset(cleandata$PageValues,cleandata$ProductRelated>=1 & cleandata$Informational==0 & cleandata$Administrative==0 & cleandata$PageValues>=1))
+Page2
+cleandata$PageValues<-replace(cleandata$PageValues,cleandata$ProductRelated>=1 & cleandata$Informational==0 & cleandata$Administrative==0 & cleandata$PageValues==0, 31.35864)
+
+length(which(cleandata$ProductRelated==0 & cleandata$Informational>=1 & cleandata$Administrative==0 & cleandata$PageValues==0))
+Page3<-median(subset(cleandata$PageValues,cleandata$ProductRelated==0 & cleandata$Informational>=1 & cleandata$Administrative==0 & cleandata$PageValues>=1))
+Page3
+
+
+length(which(cleandata$ProductRelated==0 & cleandata$Informational==0 & cleandata$Administrative>=1 & cleandata$PageValues==0))
+Page4<-median(subset(cleandata$PageValues,cleandata$ProductRelated==0 & cleandata$Informational==0 & cleandata$Administrative>=1 & cleandata$PageValues>=1))
+Page4
+
+```
+#. Correlation:
+```{r}
+#Converting Revenue into numerical variable: [0. Did Not Buy, 1. Bought]
+# Changing the label names for better display on the Correlation plot.
+APage<-(cleandata$Administrative)
+ADur<-(cleandata$Administrative_Duration)
+IPage<-(cleandata$Informational)
+IDur<-(cleandata$Informational_Duration)
+PPage<-(cleandata$ProductRelated)
+PDur<-(cleandata$ProductRelated_Duration)
+BnCRate<-(cleandata$BounceRates)
+ExtRate<-(cleandata$ExitRates)
+PageVal<-(cleandata$PageValues)
+SpcDay<-(cleandata$SpecialDay)
+MON<-(cleandata$Month)
+OPS<-(cleandata$OperatingSystems)
+BROW<-(cleandata$Browser)
+RGN<-(cleandata$Region)
+TFCtyp<-(cleandata$TrafficType)
+VSTtyp<-(cleandata$VisitorType)
+WEEK<-(cleandata$Weekend)
+REV<-(cleandata$Revenue)
+REV<-as.numeric(REV)
+cordata<-data.frame(APage,ADur,IPage,IDur,PPage,PDur,BnCRate,ExtRate,PageVal,SpcDay,OpSys,MON,OPS,BROW,RGN,TFCtyp,VSTtyp,WEEK,REV)
+str(cordata)
+correlation<-cor(cordata, method = "pearson") #Using Pearson as method, because the data is numerical and it requires to be normally distributed.
+corrplot.mixed(correlation,lower.col = 'black',number.cex=0.75,tl.cex=0.60)
+corrplot(correlation,method = "circle")
+```
+#. Normalising the dataset with the help of log function:
+```{r}
+#Applying log function to normalise the data:
+logdata<-data.frame(cleandata)
+
+logdata$Administrative<-log(logdata$Administrative+1)
+
+logdata$Administrative_Duration<-log(logdata$Administrative_Duration+1)
+
+logdata$Informational<-log(logdata$Informational+1)
+
+logdata$Informational_Duration<-log(logdata$Informational_Duration+1)
+
+logdata$ProductRelated<-log(logdata$ProductRelated+1)
+
+logdata$ProductRelated_Duration<-log(logdata$ProductRelated_Duration+1)
+
+logdata$BounceRates<-log(logdata$BounceRates+1)
+
+logdata$ExitRates<-log(logdata$ExitRates+1)
+
+logdata$PageValues<-log(logdata$PageValues+1)
+
+summary(logdata)
+
+```
+#. DESCRIPTIVE ANALYSIS: UNIVARIATE AND BI-VARIATE ANALYSIS:
+```{r}
+#. ADMINISTRATION PAGE CLICKED:
+hist(cleandata$Administrative,main = "Administrative Page visited by the user in that session", xlab = "Number of time administrative Page visited", ylab = "Count of users",xlim = c(0,30),breaks =30 ,col = "Light Blue")
+
+hist(logdata$Administrative,main = "Administrative Page visited by the user in that session", xlab = "Number of time administrative Page visited", ylab = "Count of users",xlim = c(0,5),breaks =30 ,col = "Light Blue")
+
+# Outlier Detection:
+boxplot(cleandata$Administrative, logdata$Administrative, col = "Light Blue",xlab  = "Administrative Page Visited",ylab="No. of clicks by users",main="Outliers - Comparison after Log - Transformation")
+
+plot(logdata$Revenue,logdata$Administrative, xlab="Revenue: Bought/Not",ylab="No. of clicks on Administration Page",col="Light Blue")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$Administrative)
+qqnorm(logdata$Administrative)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.Since, the value of skewness is +1.95988 that means the data is positively skewed which is also evident from the histogram.However, the data is very close to normally distributed after applying the log function. 
+skewness(cleandata$Administrative)
+
+skewness(logdata$Administrative)
+```
+
+#. ADMINISTRATION PAGE DURATION:
+```{r}
+hist(cleandata$Administrative_Duration,main = "Time spent on Administrative Page", xlab = "Time spent in seconds ", ylab = "Count of users",xlim = c(0,3400),breaks =25 ,col = "Light Blue")
+
+hist(logdata$Administrative_Duration,main = "Log:Time spent on Administrative Page",xlab = "Time spent in seconds on Administrative Page", ylab = "Count of users",xlim = c(0,10),breaks =25 ,col = "Light Blue")
+
+# Outlier Detection:
+boxplot(cleandata$Administrative_Duration, logdata$Administrative_Duration, col = "Light Blue",xlab  = "Time spent on Administrative Page in seconds",ylab="No. of clicks by users",main="Outliers - Comparison after Log - Transformation")
+
+boxplot(logdata$Administrative_Duration, col = "Light Blue",xlab  = "Time spent on Administrative Page in seconds",ylab="No. of clicks by users",main="Outliers - Log - Transformation on Administration Duration")
+
+
+plot(logdata$Revenue,logdata$Administrative_Duration, xlab="Revenue: Bought/Not",ylab="Time spent on Administrative Page in seconds",col="Light Blue")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$Administrative_Duration)
+qqnorm(logdata$Administrative_Duration)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.Since, the value of skewness is +5.620306 that means the data is positively skewed which is also evident from the histogram.However, the data is very close to normally distributed after applying the log function. 
+skewness(cleandata$Administrative_Duration)
+
+skewness(logdata$Administrative_Duration)
+```
+#. INFORMATIONAL PAGE:
+```{r}
+hist(cleandata$Informational,main = "Informational Page visited by the user in that session", xlab = "Number of time Informational Page visited", ylab = "Count of users",xlim = c(0,25),breaks =30 ,col = "Light Green")
+
+hist(logdata$Informational,main = "Log:Informational Page visited by the user in that session", xlab = "Number of time Informational Page visited", ylab = "Count of users",col = "Light Green")
+
+# Outlier Detection:
+boxplot(cleandata$Informational, col = "Light Green",xlab  = "No. of clicks on Informational Page",ylab="No. of clicks by users",main="Outliers - Informational Page")
+
+boxplot(logdata$Informational, col = "Light Green",xlab  = "No. of clicks on Informational Page",ylab="No. of clicks by users",main= "Outliers - Log - Transformation on Informational Page")
+
+
+plot(logdata$Revenue,logdata$Informational, xlab="Revenue: Bought/Not",ylab="Informational Page: No. of clicks by users",col="Light Green",main= "Outliers - Log Informational Page clicks by Revenue")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$Informational)
+qqnorm(logdata$Informational)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.Since, the value of skewness is +2.620306 that means the data is positively skewed which is also evident from the histogram.However, the level of skewness has reduced but still the data is skewed.
+skewness(cleandata$Informational)
+
+skewness(logdata$Informational)
+
+```
+#. INFORMATIONAL PAGE DURATION:
+```{r}
+hist(cleandata$Informational_Duration,main = "Time spent on Information Page", xlab = "Time spent in seconds ", ylab = "Count of users",xlim = c(0,3000),breaks =25 ,col = "Light Green")
+
+hist(logdata$Informational_Duration,main = "Log:Time spent on Informational Page",xlab = "Time spent in seconds on Informational Page", ylab = "Count of users",xlim = c(0,10),breaks =25 ,col = "Light Green")
+
+# Outlier Detection:
+boxplot(cleandata$Informational_Duration, logdata$Informational_Duration, col = "Light Green",xlab  = "Time spent on Informational Page in seconds",ylab="No. of clicks by users",main="Outliers - Comparison after Log - Transformation")
+
+boxplot(logdata$Informational_Duration, col = "Light Green",xlab  = "Time spent on Informational Page in seconds",ylab="No. of clicks by users",main="Outliers - Log - Transformation on Informational Duration")
+
+
+plot(logdata$Revenue,logdata$Informational_Duration, xlab="Revenue: Bought/Not",ylab="Time spent on Informational Page in seconds",col="Light Green",main="Log - Time spent on Informational Page: Distribution by revenue")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$Informational_Duration)
+qqnorm(logdata$Informational_Duration)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.Since, the value of skewness is +57.620306 that means the data is positively skewed which is also evident from the histogram.However, the level of skewness has reduced after applying the log function. 
+skewness(cleandata$Informational_Duration)
+
+skewness(logdata$Informational_Duration)
+```
+#. PRODUCT PAGE:
+```{r}
+hist(cleandata$ProductRelated,main = "Product Page visited by the user in that session", xlab = "Number of time Product Page visited", ylab = "Count of users",xlim = c(0,800),breaks =10 ,col = "Light Pink")
+
+hist(logdata$ProductRelated,main = "Log:Product Related Page visited by the user in that session", xlab = "Number of time Product Related Page visited", ylab = "Count of users",col = "Light Pink")
+
+# Outlier Detection:
+boxplot(cleandata$ProductRelated, col = "Light Pink",xlab  = "No. of clicks on Product Related Page",ylab="No. of clicks by users",main="Outliers - Product Related Page")
+
+boxplot(logdata$ProductRelated, col = "Light Pink",xlab  = "No. of clicks on Product Related Page",ylab="No. of clicks by users",main= "Outliers - Log - Transformation on Product Related Page")
+
+
+plot(logdata$Revenue,logdata$ProductRelated, xlab="Revenue: Bought/Not",ylab="Product Related Page: No. of clicks by users",col="Light Pink",main= "Outliers - Log Product Related Page clicks by Revenue")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$ProductRelated)
+qqnorm(logdata$ProductRelated)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.Since, the value of skewness is +4.34046 that means the data is positively skewed which is also evident from the histogram.However, the level of skewness has reduced and approximately normally distributed.
+skewness(cleandata$ProductRelated)
+
+skewness(logdata$ProductRelated)
+
+```
+#. Product Related PAGE DURATION:
+```{r}
+hist(cleandata$ProductRelated_Duration,main = "Time spent on Product Related Page", xlab = "Time spent in seconds ", ylab = "Count of users",xlim = c(0,70000),breaks =50 ,col = "Light Pink")
+
+hist(logdata$ProductRelated_Duration,main = "Log:Time spent on Product Related Page",xlab = "Time spent in seconds on Product Related Page", ylab = "Count of users",xlim = c(0,12),breaks =50 ,col = "Light Pink")
+
+# Outlier Detection:
+boxplot(cleandata$ProductRelated_Duration, logdata$ProductRelated_Duration, col = "Light Pink",xlab  = "Time spent on Product Related Page in seconds",ylab="No. of clicks by users",main="Outliers - Comparison after Log - Transformation")
+
+boxplot(logdata$ProductRelated_Duration, col = "Light Pink",xlab  = "Time spent on Product Related Page in seconds",ylab="No. of clicks by users",main="Outliers - Log - Transformation on Product Related Page Duration")
+
+
+plot(logdata$Revenue,logdata$ProductRelated_Duration, xlab="Revenue: Bought/Not",ylab="Time spent on Product Related Page in seconds",col="Light Pink")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$ProductRelated_Duration)
+qqnorm(logdata$ProductRelated_Duration)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.Since, the value of skewness is +7.275373 that means the data is positively skewed which is also evident from the histogram.However, the level of skewness has reduced after applying the log function. 
+skewness(cleandata$ProductRelated_Duration)
+
+skewness(logdata$ProductRelated_Duration)
+```
+#. BOUNCE RATES:
+```{r}
+hist(cleandata$BounceRates,main = "Bounce Rate - Single Request Triggered", xlab = "Bounce Rate in Percentage", ylab = "Count of users",xlim = c(0,1),breaks =10 ,col = "Brown")
+
+hist(logdata$BounceRates,main = "Log: Bounce Rate - Single Request Triggered", xlab = "Bounce Rate in Percentage", ylab = "Count of users",col = "Brown")
+
+# Outlier Detection:
+boxplot(cleandata$BounceRates, logdata$BounceRates, col = "Brown",xlab  = "Bounce Rate - Single Request Triggered",ylab="Bounce Rate in %",main="Outliers - Comparison after Log - Transformation")
+
+boxplot(logdata$BounceRates, col = "Brown",xlab  = "Bounce Rate - Single Request Triggered",ylab="Bounce Rate in %",main="Outliers - Log - Transformation on Product Related Page Duration")
+
+
+plot(logdata$Revenue,logdata$BounceRates, xlab="Revenue: Bought/Not",ylab="Bounce Rate in %",col="Brown")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$BounceRates)
+qqnorm(logdata$BounceRates)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.
+skewness(cleandata$BounceRates)
+
+skewness(logdata$BounceRates)
+```
+#. EXIT RATES:
+```{r}
+hist(cleandata$ExitRates,main = "Exit Rate - Percentage of people who left the site from that page", xlab = "Exit Rate in Percentage", ylab = "Count of users",xlim = c(0,1),breaks =2 ,col = "Yellow")
+
+hist(logdata$ExitRates,main = "Log:Exit Rate - Percentage of people who left the site from that page", xlab = "Exit Rate in Percentage", ylab = "Count of users",col = "Yellow")
+
+# Outlier Detection:
+boxplot(cleandata$ExitRates, logdata$ExitRates, col = "Yellow",xlab  = "Exit Rate - Percentage of people who left the site from that page",ylab="Exit Rate in %",main="Outliers - Comparison after Log - Transformation")
+
+boxplot(logdata$BounceRates, col = "Yellow",xlab  = "Exit Rate - Percentage of people who left the site from that page",ylab="Exit Rate in %",main="Outliers - Log - Transformation on Product Related Page Duration")
+
+
+plot(logdata$Revenue,logdata$BounceRates, xlab="Revenue: Bought/Not",ylab="Exit Rate in %",col="Yellow")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$ExitRates)
+qqnorm(logdata$ExitRates)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.
+skewness(cleandata$ExitRates)
+
+skewness(logdata$ExitRates)
+```
+#. PAGE VALUES:
+```{r}
+hist(cleandata$PageValues,main = "Page Values", xlab = "Average number of page visited", ylab = "Count of users",xlim = c(0,400),breaks =50 ,col = "Violet")
+
+hist(logdata$PageValues,main = "Log: Page Values", xlab = "Average number of page visited", ylab = "Count of users",col = "Violet")
+
+# Outlier Detection:
+boxplot(cleandata$PageValues, logdata$PageValues, col = "Violet",xlab  = "Average Page: Clean Data vs. Log Data",ylab="Average number of page visited",main="Outliers - Comparison after Log - Transformation")
+
+boxplot(logdata$PageValues, col = "Violet",xlab  = "Average Page: Clean Data vs. Log Data",ylab="Average number of page visited",main="Outliers - Comparison after Log - Transformation")
+
+
+plot(logdata$Revenue,logdata$PageValues, xlab="Revenue: Bought/Not",ylab="Average number of page visited",col="Violet")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$PageValues)
+qqnorm(logdata$PageValues)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.
+skewness(cleandata$PageValues)
+
+skewness(logdata$PageValues)
+
+```
+#. SPECIAL DAY:
+```{r}
+hist(cleandata$SpecialDay,main = "Special Day", xlab = "Days close to any special day", ylab = "Count of users",col = "Red")
+
+# Outlier Detection:
+boxplot(logdata$SpecialDay, col = "Red",xlab  = "Days close to any special day",ylab="Count of users",main="Outliers of special days")
+
+
+plot(logdata$Revenue,logdata$SpecialDay, xlab="Revenue: Bought/Not",ylab="Days close to any special day",col="Violet")
+
+#. Checking the linearity of the data with the help of Q-Q-plots.And checking the level of skewness after logarithmic transformation:
+qqnorm(cleandata$SpecialDay)
+
+# Measure of skewness(skewness = [mean-median]/[standard deviation]): if skewness =0, data is not normally distributed.
+skewness(cleandata$SpecialDay)
+
+countspd<-table(cleandata$Revenue,cleandata$SpecialDay)
+
+barplot(countspd,main = "Distribution by Special Day", xlab = "Closeness to any special day",col=c("Grey","Blue"),ylab = "Count of Sessions",legend=rownames(countspd))
+
+```
+#. Bi-Variate Analysis of Categorical Variables:
+```{r}
+countsmonth<-table(originaldata$Revenue, originaldata$Month)
+
+barplot(countsmonth,main = "Distribution of Months By Revenue",
+        xlab = "Months", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsmonth))
+
+countsOS<-table(cleandata$Revenue, cleandata$OperatingSystems)
+barplot(countsOS,main = "Distribution of Operating System By Revenue",
+        xlab = "Operating System", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsOS))
+
+countsbrowser<-table(cleandata$Revenue, cleandata$Browser)
+barplot(countsbrowser,main = "Distribution of Browsers By Revenue",
+        xlab = "Browsers", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsbrowser))
+
+countsregion<-table(cleandata$Revenue, cleandata$Region)
+barplot(countsregion,main = "Distribution of Regions By Revenue",
+        xlab = "Regions", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsregion))
+
+countstrf<-table(cleandata$Revenue, cleandata$TrafficType)
+barplot(countstrf,main = "Distribution of Traffic Types By Revenue",
+        xlab = "Traffic Types", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countstrf))
+
+countsvt<-table(cleandata$Revenue, cleandata$VisitorType)
+barplot(countsvt,main = "Distribution of Visitor Types By Revenue",
+        xlab = "Visitor Types", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countsvt),names.arg = c("New","Other","Returning"))
+
+countswknd<-table(cleandata$Revenue, cleandata$Weekend)
+barplot(countswknd,main = "Distribution of Days By Revenue",
+        xlab = "Visited on Weekdays or Weekends", col = c("darkblue", "Red"),
+        ylab = "Count of Sessions",legend =rownames(countswknd),names.arg =c("Weekdays","Weekends"))
+```
+
+#.Correlation:
+```{r}
+cordata<-data.frame(cleandata)
+cordata$Revenue<-as.numeric(cordata$Revenue)
+str(cordata)
+
+correlation<-cor(cordata, method = "pearson") #Using Pearson as method, because the data is numerical and it requires to be normally distributed.
+corrplot(correlation,method = "circle")
+corrplot.mixed(correlation,lower.col = 'black',number.cex=0.75,tl.cex=0.60)
+```
+
+#2.Chi-Sqaure test Method for categorical variables:
+```{r}
+#If the p value is less than 0.05,we reject the null hypothesis.
+#.Null hypothesis is the 2 variables are independent of each other. ALternative, is they are dependent on each other
+
+month<-table(cleandata$Revenue,cleandata$Month)
+chisq.test(month)
+
+OperatingS<-table(cleandata$Revenue,cleandata$OperatingSystems)
+chisq.test(OperatingS)
+
+browser<-table(cleandata$Revenue,cleandata$Browser)
+chisq.test(browser)
+
+visitortype<-table(cleandata$Revenue,cleandata$VisitorType)
+chisq.test(visitortype)
+
+traffictype<-table(cleandata$Revenue,cleandata$TrafficType)
+chisq.test(traffictype)
+
+weekend<-table(cleandata$Revenue,cleandata$Weekend)
+chisq.test(weekend)
+
+
+#. Region is not dependent on Revenue
+region<-table(cleandata$Revenue,cleandata$Region)
+chisq.test(region)
+
+```
+
+#. FEATURE SELECTION:
+#1.WRAPPER METHOD through BORUTA: It finds the importance of a feature by creating shadow features.
+```{r}
+#set.seed(123)
+#barutadata<-data.frame(cleandata)
+#barutadata$Revenue<- as.factor(barutadata$Revenue)
+#boruta<-Boruta(barutadata$Revenue ~ ., data = barutadata, doTrace =2, maxRuns=500)
+#print(boruta)
+#plot(boruta, las = 2, cex.axis=0.7)
+```
+
+```{r}
+wrapper1<-data.frame(logdata[,-10])
+wrapper<-data.frame(wrapper1[,-13])
+str(wrapper)
+```
+
+#2. FILTER METHOD:USING CHI SQUARE(using p value of independence for categorical variables) AND CORRELATION (using coefficients for quantitative variables) 
+```{r}
+#. Not selected Region, because p value was higher than 0.05% and removed administration duration,informational duration,product related duration and exit rates as they were corerelated by more than 0.60 coefficient with administration page, informational page, product related page and exit rates. These were selcted over others because data has lower skewness.
+filter<-data.frame(logdata[,c(2,4,6,8,9,10,11,12,13,15,16,17,18)])
+
+str(filter)
+```
+
+#. SMOTE TRANSFORMATION: the dependent variable should be factor
+```{r}
+#. CLEAN DATA
+Csmotedata<-data.frame(cleandata)
+str(Csmotedata)
+
+table(Csmotedata$Revenue) # Checking the imbalance in the class variable 'Revenue' of the original data
+prop.table(table(Csmotedata$Revenue))
+```
+
+```{r}
+#. WRAPPER
+Wsmotedata<-data.frame(wrapper)
+str(Wsmotedata)
+
+table(Wsmotedata$Revenue) # Checking the imbalance in the class variable 'Revenue' of the original data
+prop.table(table(Wsmotedata$Revenue))
+```
+
+```{r}
+#. FILTER
+Fsmotedata<-data.frame(filter)
+str(Fsmotedata)
+
+table(Fsmotedata$Revenue) # Checking the imbalance in the class variable 'Revenue' of the original data
+prop.table(table(Fsmotedata$Revenue))
+```
+
+
+#.DATA PARTIONING OF SMOTE DATA INTO TEST DATA AND TRAINING DATA: dividing the data into training (70%) and test data set (30%)
+
+```{r}
+#DATA PARTITION CLEAN DATA:
+#Revenue
+table(Csmotedata$Revenue)
+
+str(Csmotedata)
+
+set.seed(123)
+index<-sample(nrow(Csmotedata),floor(0.70*nrow(Csmotedata)))
+Ctrain<-Csmotedata[index,] #70% Train data
+Ctest<- Csmotedata[-index,] #30% Test data
+dim(Ctrain)
+head(Ctrain)
+table(Ctrain$Revenue)
+dim(Ctest)
+head(Ctest)
+table(Ctest$Revenue)
+```
+
+```{r}
+#DATA PARTITION WRAPPER:
+#Revenue
+table(Wsmotedata$Revenue)
+
+str(Wsmotedata)
+
+set.seed(123)
+index<-sample(nrow(Wsmotedata),floor(0.70*nrow(Wsmotedata)))
+Wtrain<-Wsmotedata[index,] #70% Train data
+Wtest<- Wsmotedata[-index,] #30% Test data
+dim(Wtrain)
+head(Wtrain)
+table(Wtrain$Revenue)
+dim(Wtest)
+head(Wtest)
+table(Wtest$Revenue)
+```
+
+
+```{r}
+#DATA PARTITION:FILTER
+#Revenue
+table(Fsmotedata$Revenue)
+
+str(Fsmotedata)
+
+set.seed(123)
+index<-sample(nrow(Fsmotedata),floor(0.70*nrow(Fsmotedata)))
+Ftrain<-Fsmotedata[index,] #70% Train data
+Ftest<- Fsmotedata[-index,] #30% Test data
+dim(Ftrain)
+head(Ftrain)
+table(Ftrain$Revenue)
+dim(Ftest)
+head(Ftest)
+table(Ftest$Revenue)
+```
+
+
+#. SMOTE: CLASS IMBALANCE: Only 15% of the Revenue is True, so the class has imbalance. OVER SAMPLING AND UNDER SAMPLING technique to solve the problem of imbalance. 
+
+```{r}
+#. CLEAN DATA
+str(Ctrain)
+Ctrain<-SMOTE(Revenue ~ .,Ctrain, perc.over = 100, perc.under = 200)
+dim(Ctrain)
+table(Ctrain$Revenue)
+
+prop.table(table(Ctrain$Revenue))
+
+Ctest<-SMOTE(Revenue ~ .,Ctest, perc.over = 100, perc.under = 200)
+dim(Ctest)
+table(Ctest$Revenue)
+
+prop.table(table(Ctest$Revenue))
+
+```
+
+```{r}
+#. FILTER
+str(Ftrain)
+Ftrain<-SMOTE(Revenue ~ .,Ftrain, perc.over = 100, perc.under = 200)
+dim(Ftrain)
+table(Ftrain$Revenue)
+
+prop.table(table(Ftrain$Revenue))
+
+Ftest<-SMOTE(Revenue ~ .,Ftest, perc.over = 100, perc.under = 200)
+dim(Ftest)
+table(Ftest$Revenue)
+
+prop.table(table(Ftest$Revenue))
+
+```
+#.All variables should be numerical for transferring it to LOGISTIC CLASSFICATION :
+```{r}
+set.seed(123)
+#. WRAPPER
+#. Revenue:
+
+table(Wtrain$Revenue)
+
+Wtrain$Revenue<- factor(Wtrain$Revenue,
+                             levels = c('FALSE', 'TRUE'),
+                             labels = c(0,1))
+Wtrain$Revenue = as.character(Wtrain$Revenue)
+
+Wtrain$Revenue <-as.numeric(Wtrain$Revenue)
+head(Wtrain$Revenue)
+
+#Test Data
+
+table(Wtest$Revenue)
+
+Wtest$Revenue<- factor(Wtest$Revenue,
+                             levels = c('FALSE', 'TRUE'),
+                             labels = c(0,1))
+Wtest$Revenue = as.character(Wtest$Revenue)
+
+Wtest$Revenue <-as.numeric(Wtest$Revenue)
+head(Wtest$Revenue)
+```
+
+#. CLEAN DATA
+```{r}
+set.seed(123)
+#. FILTER
+#. Revenue:
+
+table(Ctrain$Revenue)
+
+Ctrain$Revenue<- factor(Ctrain$Revenue,
+                             levels = c('FALSE', 'TRUE'),
+                             labels = c(0,1))
+Ctrain$Revenue = as.character(Ctrain$Revenue)
+
+Ctrain$Revenue <-as.numeric(Ctrain$Revenue)
+head(Ctrain$Revenue)
+
+#Test Data
+
+table(Ctest$Revenue)
+
+Ctest$Revenue<- factor(Ctest$Revenue,
+                             levels = c('FALSE', 'TRUE'),
+                             labels = c(0,1))
+Ctest$Revenue = as.character(Ctest$Revenue)
+
+Ctest$Revenue <-as.numeric(Ctest$Revenue)
+head(Ctest$Revenue)
+```
+#. WRAPPER
+```{r}
+#. Revenue:
+set.seed(123)
+str(Wtrain)
+table(Wtrain$Revenue)
+
+Wtrain$Revenue <-as.character(Wtrain$Revenue)
+
+Wtrain$Revenue <-as.numeric(Wtrain$Revenue)
+head(Wtrain$Revenue)
+
+#Test Data
+
+table(Wtest$Revenue)
+
+Wtest$Revenue = as.character(Wtest$Revenue)
+
+Wtest$Revenue <-as.numeric(Wtest$Revenue)
+head(Wtest$Revenue)
+```
+
+```{r}
+#. FILTER
+#. Revenue:
+set.seed(123)
+
+table(Ftrain$Revenue)
+
+Ftrain$Revenue<- factor(Ftrain$Revenue,
+                             levels = c('FALSE', 'TRUE'),
+                             labels = c(0,1))
+Ftrain$Revenue = as.character(Ftrain$Revenue)
+
+Ftrain$Revenue <-as.numeric(Ftrain$Revenue)
+head(Ftrain$Revenue)
+
+#Test Data
+
+table(Ftest$Revenue)
+
+Ftest$Revenue<- factor(Ftest$Revenue,
+                             levels = c('FALSE', 'TRUE'),
+                             labels = c(0,1))
+Ftest$Revenue = as.character(Ftest$Revenue)
+
+Ftest$Revenue <-as.numeric(Ftest$Revenue)
+head(Ftest$Revenue)
+```
+#.LOGISTIC REGRESSION:
+#. CLEAN DATA
+
+```{r}
+# Fitting Logistic Regression to the Training set: CLEAN DATA
+classifierC  = glm(formula = Revenue ~  .,
+                 family = binomial,
+                 data = Ctrain)
+
+# Predicting the Test set results
+prob_predC = predict(classifierC, type = 'response', newdata = Ctest[-18])
+y_predC = ifelse(prob_predC > 0.7, 1, 0) # Probability of buying is considered as 70%
+
+# Making the Confusion Matrix
+cmC = table(Ctest[, 18],y_predC)
+confusionMatrix(cmC)
+roc.curve(Ctest$Revenue,y_predC)
+summary(classifierC)
+```
+#.FILTER 
+
+```{r}
+# Fitting Logistic Regression to the Training set: FILTER METHOD
+classifierF  = glm(formula = Revenue ~  .,
+                 family = binomial,
+                 data = Ftrain)
+
+# Predicting the Test set results
+prob_predF = predict(classifierF, type = 'response', newdata = Ftest[-13])
+y_predF = ifelse(prob_predLR > 0.7, 1, 0) # Probability of buying is considered as 70%
+
+# Making the Confusion Matrix
+cmF = table(Ftest[, 13],y_predF)
+confusionMatrix(cmF)
+roc.curve(Ftest$Revenue,y_predF)
+summary(classifierF)
+```
+
+#. WRAPPER
+
+```{r}
+# Fitting Logistic Regression to the Training set: WRAPPER DATA
+classifierW  = glm(formula = Revenue ~  .,
+                 family = binomial,
+                 data = Wtrain)
+
+# Predicting the Test set results
+prob_predW = predict(classifierW, type = 'response', newdata = Wtest[-16])
+y_predW = ifelse(prob_predW > 0.7, 1, 0) # Probability of buying is considered as 70%
+
+# Making the Confusion Matrix
+cmW = table(Wtest[, 16],y_predW)
+confusionMatrix(cmW)
+roc.curve(Wtest$Revenue,y_predW)
+summary(classifierW)
+```
+
+#.SUPPORT VECTOR MACHINE:
+#.CLEAN DATA
+```{r}
+svmclassifier<-svm(formula  = Revenue ~ .,
+                   data = Ctrain,
+                   type='C-classification',
+                   kernel='linear')
+
+# Predicting the Test set results
+svm_y_pred = predict(svmclassifier, newdata = Ctest[-18])
+
+# Making the Confusion Matrix
+svmcm = table(Ctest[, 18], svm_y_pred)
+confusionMatrix(svmcm)
+roc.curve(Ctest$Revenue,svm_y_pred)
+```
+
+#. FILTER
+```{r}
+svmclassifier<-svm(formula  = Revenue ~ .,
+                   data = Ftrain,
+                   type='C-classification',
+                   kernel='linear')
+
+# Predicting the Test set results
+svm_y_pred = predict(svmclassifier, newdata = Ftest[-13])
+
+# Making the Confusion Matrix
+cmsvm = table(Ftest[, 13], svm_y_pred)
+confusionMatrix(cmsvm)
+roc.curve(Ftest$Revenue,svm_y_pred)
+```
+#.WRAPPER
+```{r}
+svmclassifier<-svm(formula  = Revenue ~ .,
+                   data = Wtrain,
+                   type='C-classification',
+                   kernel='linear')
+
+# Predicting the Test set results
+svm_y_pred = predict(svmclassifier, newdata = Wtest[-16])
+
+# Making the Confusion Matrix
+cmsv = table(Wtest[, 16], svm_y_pred)
+confusionMatrix(cmsv)
+roc.curve(Wtest$Revenue,svm_y_pred)
+```
+
+#.K-Nearest Neighbors (K-NN):
+
+#. CLEAN DATA
+```{r}
+# Fitting K-NN to the Training set and Predicting the Test set results
+knn_y_pred = knn(train = Ctrain[, -18],
+             test = Ctest[, -18],
+             cl = Ctrain[, 18],
+             k = 11,
+             prob = TRUE)
+
+# Making the Confusion Matrix
+knn_cmC = table(Ctest[, 18], knn_y_pred)
+confusionMatrix(knn_cmC)
+
+roc.curve(Ctest$Revenue,knn_y_pred)
+```
+
+#. FILTER
+```{r}
+svmclassifier<-svm(formula  = Revenue ~ .,
+                   data = Ftrain,
+                   type='C-classification',
+                   kernel='linear')
+
+# Predicting the Test set results
+svm_y_pred = predict(svmclassifier, newdata = Ftest[-13])
+
+# Making the Confusion Matrix
+cm = table(Ftest[, 13], svm_y_pred)
+confusionMatrix(cm)
+roc.curve(Ftest$Revenue,svm_y_pred)
+```
+
+#. WRAPPER
+```{r}
+# Fitting K-NN to the Training set and Predicting the Test set results
+knn_y_pred = knn(train = Wtrain[, -16],
+             test = Wtest[, -16],
+             cl = Wtrain[, 16],
+             k = 11,
+             prob = TRUE)
+
+# Making the Confusion Matrix
+knn_cm = table(Wtest[, 16], knn_y_pred)
+confusionMatrix(knn_cm)
+
+roc.curve(Wtest$Revenue,knn_y_pred)
+```
+
+
+#.RANDOM FOREST CLASSIFIER: 
+#. CLEAN DATA
+```{r}
+#. COnverting the dependent variable as factor
+CtrainRF<-data.frame(Ctrain)
+CtrainRF$Revenue<-as.character(CtrainRF$Revenue)
+CtrainRF$Revenue<-as.factor(CtrainRF$Revenue)
+str(CtrainRF)
+
+CtestRF<-data.frame(Ctest)
+CtestRF$Revenue<-as.character(CtestRF$Revenue)
+CtestRF$Revenue<-as.factor(CtestRF$Revenue)
+str(CtestRF)
+
+#Fitting Random Forest Classification to the Training Set.
+CRFclassifier<-randomForest(x =CtrainRF[-18],y =CtrainRF$Revenue,ntree = 2000) # with the reiteration in number of tress the accuracy is still at 85%
+
+# Predicting the test results 
+y_predRF = predict(CRFclassifier, newdata = CtestRF[-18])
+
+# Making the confusion matrix
+RFcm = table(CtestRF[,18], y_predRF)
+confusionMatrix(RFcm)
+roc.curve(CtestRF$Revenue,y_predRF)
+
+#importance(WRFclassifier)[order(importance(WRFclassifier)),]
+varImpPlot(CRFclassifier,pch=18,col="Blue",cex=1)
+
+```
+
+#.FILTER
+```{r}
+#. COnverting the dependent variable as factor
+FtrainRF<-data.frame(Ftrain)
+FtrainRF$Revenue<-as.character(FtrainRF$Revenue)
+FtrainRF$Revenue<-as.factor(FtrainRF$Revenue)
+str(FtrainRF)
+
+FtestRF<-data.frame(Ftest)
+FtestRF$Revenue<-as.character(FtestRF$Revenue)
+FtestRF$Revenue<-as.factor(FtestRF$Revenue)
+str(FtestRF)
+
+#Fitting Random Forest Classification to the Training Set.
+RFclassifier<-randomForest(x = FtrainRF[-13],y =FtrainRF$Revenue,ntree = 2000) # with the reiteration in number of tress the accuracy is still at 85%
+
+# Predicting the test results 
+y_predRF = predict(RFclassifier, newdata = FtestRF[-13])
+
+# Making the confusion matrix
+RFcm = table(FtestRF[,13], y_predRF)
+confusionMatrix(RFcm)
+roc.curve(FtestRF$Revenue,y_predRF)
+
+#importance(RFclassifier)[order(importance(RFclassifier)),]
+varImpPlot(RFclassifier,pch=18,col="Blue",cex=1)
+
+randomForest::importance(RFclassifier)
+```
+
+#. WRAPPER
+```{r}
+#. COnverting the dependent variable as factor
+WtrainRF<-data.frame(Wtrain)
+WtrainRF$Revenue<-as.character(WtrainRF$Revenue)
+WtrainRF$Revenue<-as.factor(WtrainRF$Revenue)
+str(WtrainRF)
+
+WtestRF<-data.frame(Wtest)
+WtestRF$Revenue<-as.character(WtestRF$Revenue)
+WtestRF$Revenue<-as.factor(WtestRF$Revenue)
+str(WtestRF)
+
+#Fitting Random Forest Classification to the Training Set.
+WRFclassifier<-randomForest(x =WtrainRF[-16],y =WtrainRF$Revenue,ntree = 2000) # with the reiteration in number of tress the accuracy is still at 85%
+
+# Predicting the test results 
+y_predRF = predict(WRFclassifier, newdata = WtestRF[-16])
+
+# Making the confusion matrix
+RFcm = table(WtestRF[,16], y_predRF)
+confusionMatrix(RFcm)
+roc.curve(WtestRF$Revenue,y_predRF)
+
+#importance(WRFclassifier)[order(importance(WRFclassifier)),]
+varImpPlot(WRFclassifier,pch=18,col="Blue",cex=1)
+
+```
